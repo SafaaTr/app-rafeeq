@@ -62,7 +62,7 @@ export function resolveAppRole(payload?: any): ResolvedRoleConfig {
     payload?.role,
   ];
 
-  // نعطي الأولوية للأدوار المتخصصة (vet / host) قبل pet_owner إذا وجدت
+
   const mappedRoles = candidates
     .map(normalizeSingleRole)
     .filter((r): r is AppRole => r !== null);

@@ -360,7 +360,7 @@ export default function DoctorsScreen() {
         })}
       </View>
 
-      {/* Selected doctor 7-day strip & available slots */}
+    
       {activeDoctor ? (
         <AppCard
           color="bg-white dark:bg-[#1E2733]"
@@ -448,7 +448,7 @@ export default function DoctorsScreen() {
             </View>
           )}
 
-          {/* Book button disabled until a slot is selected */}
+          
           <TouchableOpacity
             disabled={!selectedSlotId || bookingLoading}
             onPress={handleBook}

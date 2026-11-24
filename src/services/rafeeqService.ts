@@ -1,4 +1,4 @@
-// إضافات وتحديثات داخل src/services/rafeeqService.ts
+//   داخل src/services/rafeeqService.ts
 import { fetchApi } from "./apiClient";
 
 export type BookingStatus = "pending" | "approved" | "rejected";

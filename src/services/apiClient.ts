@@ -12,7 +12,7 @@ export interface ApiResponse<T = any> {
   data: T;
 }
 
-// ط°ط§ظƒط±ط© ظ…ط¤ظ‚طھط© ظ„ظ„طھظˆظƒظ†
+
 let currentAuthToken: string | null = null;
 
 export function setClientToken(token: string | null) {
@@ -23,9 +23,6 @@ export function getClientToken(): string | null {
   return currentAuthToken;
 }
 
-/**
- * ط¯ط§ظ„ط© ط¬ظ„ط¨ ظ…ظˆط­ط¯ط© طھطھط¹ط§ظ…ظ„ طھظ„ظ‚ط§ط¦ظٹط§ظ‹ ظ…ط¹ ط§ظ„ظ€ Mock ط£ظˆ ط§ظ„ظ€ Real NestJS Backend
- */
 export async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {},
@@ -68,7 +65,6 @@ export async function fetchApi<T>(
     throw new Error("Server returned an invalid response.");
   }
 
-  // طھط؛ط·ظٹط© ط§ط³طھط¬ط§ط¨ط§طھ NestJS ط§ظ„ظ…طھظ†ظˆط¹ط© (Standard & Wrapped)
   if (!response.ok) {
     const errorMsg = Array.isArray(resData?.message)
       ? resData.message.join(", ")
@@ -76,7 +72,6 @@ export async function fetchApi<T>(
     throw new Error(errorMsg);
   }
 
-  // ط¥ط°ط§ ظƒط§ظ† ط§ظ„ط¨ط§ظƒ ط¥ظ†ط¯ ظٹط؛ظ„ظپ ط§ظ„ط§ط³طھط¬ط§ط¨ط© ط¨ظ€ { success: true, data: ... }
   if (resData && typeof resData === "object" && "data" in resData && "success" in resData) {
     return resData.data;
   }

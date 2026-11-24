@@ -9,8 +9,8 @@ import {
 interface AppButtonProps extends Omit<TouchableOpacityProps, "className"> {
   title: string;
   onPress: () => void;
-  color?: string; // لون خلفية (Hex أو class مثل bg-blue-600)
-  textColor?: string; // لون نص (Hex أو class مثل text-white)
+  color?: string; // لون خلفية 
+  textColor?: string; // لون نص 
   loading?: boolean;
   className?: string;
   textClassName?: string;

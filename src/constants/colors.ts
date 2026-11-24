@@ -1,7 +1,7 @@
 // src/constants/colors.ts
 
 export const colorPalette = {
-  sandCream: "#E4EAF1", // Color 1 - خلفية التطبيق المطلوبة صفاء (#E4EAF1)
+  sandCream: "#E4EAF1", // Color 1 - خلفية التطبيق المطلوبة  (#E4EAF1)
   softSand: "#F6D28B",  // Color 2 - أصفر رملي ناعم
   accentGold: "#EAB642",// Color 3 - العسلي/الذهبي للأزرار والعناصر النشطة
   softBlue: "#557FB3",  // Color 4 - الأزرق الناعم

@@ -138,6 +138,7 @@ export async function registerRequest(
         name: trimmedName,
         phone: trimmedPhone,
         password: trimmedPassword,
+        confirmPassword: trimmedConfirm,
         roles: ["pet_owner"],
       }),
     },

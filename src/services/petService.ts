@@ -22,7 +22,6 @@ export async function savePetRequest(
     headers.Authorization = "Bearer " + (token || getClientToken());
   }
 
-  // ط·آ¹ط·آ¯ط¸â€کط¸â€‍ط¸ظ¹ ط·آ§ط¸â€‍ط¸â€¦ط·آ³ط·آ§ط·آ± (/pets) ط·آ¥ط·آ°ط·آ§ ط¸ئ’ط·آ§ط¸â€  ط¸ظ¾ط¸ظ¹ NestJS ط¸â€¦ط·آ®ط·ع¾ط¸â€‍ط¸ظ¾ط·آ§ط¸â€¹ ط¸â€¦ط·آ«ط¸â€‍ /api/pets ط·آ£ط¸ث† /users/me/pet
   const response = await fetch(`${API_BASE_URL}/pets`, {
     method: "POST",
     headers,

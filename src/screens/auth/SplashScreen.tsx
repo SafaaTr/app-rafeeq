@@ -12,7 +12,6 @@ export default function SplashScreen({ navigation }: Props) {
   return (
     <View className="flex-1 justify-between p-6 bg-[#E4EAF1] dark:bg-[#121820]">
       <View className="flex-1 justify-center items-center">
-        {/* خلفية جمالية على شكل شكل عضوي */}
         <View className="w-64 h-64 rounded-full bg-[#F6D28B]/50 justify-center items-center relative">
           <Ionicons name="paw" size={100} color={colorPalette.navyDark} />
         </View>

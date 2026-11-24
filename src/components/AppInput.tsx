@@ -4,9 +4,9 @@ import { View, Text, TextInput, TextInputProps } from "react-native";
 interface AppInputProps extends Omit<TextInputProps, "className"> {
   label?: string;
   error?: string;
-  color?: string; // لون خلفية الحقل (Hex أو class مثل bg-white)
-  textColor?: string; // لون النص (Hex أو class مثل text-slate-900)
-  borderColor?: string; // لون الحدود (Hex أو class مثل border-slate-300)
+  color?: string; // لون خلفية الحقل (bg-white)
+  textColor?: string; // لون النص (text-slate-900)
+  borderColor?: string; // لون الحدود (border-slate-300)
   placeholderColor?: string; // لون الـ placeholder مباشرة للـ TextInput
   className?: string;
   inputClassName?: string;

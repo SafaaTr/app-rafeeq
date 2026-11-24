@@ -1,7 +1,7 @@
 // src/services/legacyDoctorAuth.ts
 // خدمة مستقلة لتجربة تسجيل دخول الطبيب على الباك القديم الخاص بالدكتور
 
-// عدّلي هذا الرابط حسب عنوان السيرفر الذي يشغّل راوتر الدكتور
+
 export const LEGACY_DOCTOR_API_BASE_URL = "http://192.168.10.78:3001/api/doctors";
 
 export interface LegacyDoctorUser {
