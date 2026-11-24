@@ -1,7 +1,9 @@
-import React, { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, TextInput } from "react-native";
-import AppCard from "../../components/AppCard";
+import { useState } from "react";
+import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import AppButton from "../../components/AppButton";
+import AppCard from "../../components/AppCard";
+import { useAuth } from "../../context/AuthContext";
 
 interface LoginScreenProps {
   navigation: {
@@ -9,54 +11,49 @@ interface LoginScreenProps {
   };
 }
 
-const INVALID_CREDENTIALS_MSG = "Invalid name or password. Please re-enter.";
+const SYRIAN_PHONE_REGEX = /^09\d{8}$/;
 
 export default function LoginScreen({ navigation }: LoginScreenProps) {
-  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const { login, loading } = useAuth();
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setErrorMessage("");
 
-    const trimmedName = name.trim();
-    if (!trimmedName || !password.trim()) {
+    const trimmedPhone = phone.trim();
+    const trimmedPassword = password.trim();
+
+    if (!trimmedPhone || !trimmedPassword) {
       setErrorMessage("Please fill in all fields.");
       return;
     }
 
-    // Local authentication simulation according to v1.2 specifications
-    const lowerName = trimmedName.toLowerCase();
-
-    if (lowerName.includes("leen") || lowerName.includes("vet")) {
-      navigation.navigate("MainApp", {
-        role: "vet",
-        roles: ["vet"],
-        user: { name: trimmedName, roles: ["vet"] },
-      });
+    if (!SYRIAN_PHONE_REGEX.test(trimmedPhone)) {
+      setErrorMessage("Please enter a valid 10-digit phone number (09XXXXXXXX).");
       return;
     }
 
-    if (lowerName.includes("salma") || lowerName.includes("host")) {
-      navigation.navigate("MainApp", {
-        role: "host",
-        roles: ["host"],
-        user: { name: trimmedName, roles: ["host"] },
-      });
-      return;
-    }
+    try {
+      const user = await login(trimmedPhone, trimmedPassword);
 
-    if (lowerName.includes("maya") || lowerName.includes("owner") || lowerName.includes("user")) {
-      navigation.navigate("MainApp", {
-        role: "pet_owner",
-        roles: ["pet_owner"],
-        user: { name: trimmedName, roles: ["pet_owner"] },
-      });
-      return;
-    }
+      const roles =
+        Array.isArray(user?.roles) && user.roles.length > 0
+          ? user.roles
+          : ["pet_owner"];
 
-    // Default error handling for unknown users
-    setErrorMessage(INVALID_CREDENTIALS_MSG);
+      navigation.navigate("MainApp", {
+        user,
+        roles,
+        role: roles[0],
+      });
+    } catch (err: any) {
+      setErrorMessage(
+        err?.message || "Invalid phone number or password. Please re-enter."
+      );
+    }
   };
 
   return (
@@ -85,31 +82,48 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         className="gap-3 border border-slate-200 dark:border-slate-700"
       >
         <TextInput
-          value={name}
+          value={phone}
           onChangeText={(txt) => {
-            setName(txt);
+            setPhone(txt);
             if (errorMessage) setErrorMessage("");
           }}
-          placeholder="Name"
+          placeholder="Phone Number (09XXXXXXXX)"
           placeholderTextColor="#94A3B8"
-          className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-[#2A4D75]"
+          keyboardType="phone-pad"
+          maxLength={10}
+          className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-[#2A4D75] dark:text-white dark:bg-slate-800"
         />
 
-        <TextInput
-          value={password}
-          onChangeText={(txt) => {
-            setPassword(txt);
-            if (errorMessage) setErrorMessage("");
-          }}
-          placeholder="Password"
-          placeholderTextColor="#94A3B8"
-          secureTextEntry
-          className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-[#2A4D75]"
-        />
+        <View className="relative justify-center">
+          <TextInput
+            value={password}
+            onChangeText={(txt) => {
+              setPassword(txt);
+              if (errorMessage) setErrorMessage("");
+            }}
+            placeholder="Password"
+            placeholderTextColor="#94A3B8"
+            secureTextEntry={!showPassword}
+            className="bg-slate-50 border border-slate-200 rounded-xl pl-3 pr-12 py-2 text-xs text-[#2A4D75] dark:text-white dark:bg-slate-800"
+          />
+          <TouchableOpacity
+            onPress={() => setShowPassword((visible) => !visible)}
+            accessibilityRole="button"
+            accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+            className="absolute right-3 h-10 w-8 items-center justify-center"
+          >
+            <Ionicons
+              name={showPassword ? "eye-off-outline" : "eye-outline"}
+              size={20}
+              color="#64748B"
+            />
+          </TouchableOpacity>
+        </View>
 
         <AppButton
-          title="Login"
+          title={loading ? "Logging in..." : "Login"}
           onPress={handleLogin}
+          disabled={loading}
           color="bg-[#2A4D75]"
           textColor="text-white"
           className="mt-1"

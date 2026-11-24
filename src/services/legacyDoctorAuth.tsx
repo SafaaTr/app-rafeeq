@@ -2,9 +2,7 @@
 // خدمة مستقلة لتجربة تسجيل دخول الطبيب على الباك القديم الخاص بالدكتور
 
 // عدّلي هذا الرابط حسب عنوان السيرفر الذي يشغّل راوتر الدكتور
-// ملاحظة: على Android Emulator استخدمي http://10.0.2.2:<PORT>/api/doctors
-// وعلى جهاز حقيقي استخدمي IP جهازك على نفس الشبكة مثل http://192.168.1.X:<PORT>/api/doctors
-export const LEGACY_DOCTOR_API_BASE_URL = "http://192.168.1.10:5000/api/doctors";
+export const LEGACY_DOCTOR_API_BASE_URL = "http://192.168.10.78:3001/api/doctors";
 
 export interface LegacyDoctorUser {
   _id: string;
@@ -28,7 +26,6 @@ export interface LegacyDoctorLoginResult {
 }
 
 function normalizeDoctorPayload(payload: any): LegacyDoctorLoginResult {
-  // 1. نحدد وين موجود كائن الطبيب داخل الاستجابة
   const doctorObj =
     payload?.data?.doctor ||
     payload?.doctor ||
@@ -38,14 +35,12 @@ function normalizeDoctorPayload(payload: any): LegacyDoctorLoginResult {
     payload ||
     {};
 
-  // 2. نلتقط التوكن إذا كان موجوداً بأي مسمى شائع
   const token =
     payload?.token ||
     payload?.data?.token ||
     payload?.accessToken ||
     payload?.data?.accessToken;
 
-  // 3. نحول السعر بأمان إلى رقم
   const rawPrice = doctorObj?.price;
   const parsedPrice =
     typeof rawPrice === "number"
@@ -54,7 +49,6 @@ function normalizeDoctorPayload(payload: any): LegacyDoctorLoginResult {
       ? Number(rawPrice)
       : 0;
 
-  // 4. نبني الكائن الموحّد للطبيب
   const normalizedDoctor: LegacyDoctorUser = {
     _id: String(doctorObj?._id ?? doctorObj?.id ?? ""),
     name: String(doctorObj?.name ?? doctorObj?.fullName ?? "Doctor").trim() || "Doctor",
@@ -89,13 +83,32 @@ export async function loginLegacyDoctor(
   phone: string,
   password: string
 ): Promise<LegacyDoctorLoginResult> {
-  const response = await fetch(`${LEGACY_DOCTOR_API_BASE_URL}/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone: phone.trim(), password }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
 
-  const payload = await response.json();
+  let response: Response;
+  try {
+    response = await fetch(`${LEGACY_DOCTOR_API_BASE_URL}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: phone.trim(), password }),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("Server is taking too long to respond. Please try again.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  let payload: any;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new Error("Server returned an invalid response.");
+  }
   if (!response.ok) {
     throw new Error(
       payload?.message || payload?.error || "Unable to sign in. Please try again."

@@ -1,9 +1,17 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import SearchBar from "../../components/SearchBar";
 import AppCard from "../../components/AppCard";
 import { colorPalette } from "../../constants/colors";
+import { useAuth } from "../../context/AuthContext";
+import {
+  bookVetAppointment,
+  Doctor,
+  ExternalSlotDto,
+  getDoctors,
+  getDoctorSlots,
+} from "../../services/rafeeqService";
 
 export interface SlotDto {
   slotId: string;
@@ -100,6 +108,11 @@ export default function DoctorsScreen() {
   const [selectedDate, setSelectedDate] = useState<string>(d0);
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>("");
+  const [statusType, setStatusType] = useState<"error" | "success">("success");
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [doctors, setDoctors] = useState<DoctorItem[]>(MOCK_DOCTORS);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
+  const { user } = useAuth();
 
   const sevenDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, idx) => {
@@ -114,16 +127,70 @@ export default function DoctorsScreen() {
     });
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadDoctors = async () => {
+      setLoadingDoctors(true);
+      try {
+        const [doctorList, firstSlots] = await Promise.all([
+          getDoctors(),
+          getDoctorSlots("vet_101"),
+        ]);
+        if (cancelled) return;
+
+        const normalizedSlots = (slots: ExternalSlotDto[]): SlotDto[] =>
+          slots.map((slot) => ({
+            slotId: slot.externalSlotId,
+            date: slot.date,
+            day: slot.day,
+            time: slot.time,
+            status: slot.status,
+          }));
+
+        const normalized: DoctorItem[] = await Promise.all(
+          doctorList.map(async (doctor: Doctor) => {
+            const slots = doctor.externalDoctorId === "vet_101"
+              ? firstSlots
+              : await getDoctorSlots(doctor.externalDoctorId);
+            return {
+              id: doctor.externalDoctorId,
+              name: doctor.name,
+              specialty: doctor.clinicName || "Veterinary Care",
+              address: doctor.address,
+              price: doctor.consultationPrice || 0,
+              avgRating: doctor.avgRating,
+              ratingsCount: doctor.ratingsCount,
+              slots: normalizedSlots(slots),
+            };
+          })
+        );
+        setDoctors(normalized);
+        setSelectedDoctorId(normalized[0]?.id || "");
+      } catch (error: any) {
+        if (!cancelled) {
+          setStatusType("error");
+          setStatusMessage(error?.message || "Could not load doctors.");
+        }
+      } finally {
+        if (!cancelled) setLoadingDoctors(false);
+      }
+    };
+    void loadDoctors();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const filteredDoctors = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return MOCK_DOCTORS;
-    return MOCK_DOCTORS.filter(
+    if (!q) return doctors;
+    return doctors.filter(
       (doc) =>
         doc.name.toLowerCase().includes(q) ||
         doc.specialty.toLowerCase().includes(q) ||
         doc.address.toLowerCase().includes(q)
     );
-  }, [searchQuery]);
+  }, [searchQuery, doctors]);
 
   const activeDoctor = useMemo(() => {
     return (
@@ -160,13 +227,48 @@ export default function DoctorsScreen() {
       : firstAvailableDay?.date || selectedDate;
   const daySlots = availableSlotsByDate[visibleSelectedDate] || [];
 
-  const handleBook = () => {
+  const handleBook = async () => {
+    if (!activeDoctor) {
+      setStatusType("error");
+      setStatusMessage("Please select a doctor.");
+      return;
+    }
     if (!selectedSlotId || !daySlots.some((slot) => slot.slotId === selectedSlotId)) {
+      setStatusType("error");
       setStatusMessage("Please select a time slot.");
       return;
     }
-    setStatusMessage("Your request has been sent, you will receive a response.");
-    setSelectedSlotId(null);
+
+    const petId = user?.pet?.id || user?.pet?.petId || user?.pet?.referenceCode || "current_pet";
+    setBookingLoading(true);
+    setStatusMessage("");
+    try {
+      const result = await bookVetAppointment({
+        externalDoctorId: activeDoctor.id,
+        externalSlotId: selectedSlotId,
+        petId,
+      });
+      setDoctors((current) =>
+        current.map((doctor) =>
+          doctor.id === activeDoctor.id
+            ? {
+                ...doctor,
+                slots: doctor.slots.map((slot) =>
+                  slot.slotId === selectedSlotId ? { ...slot, status: "booked" as const } : slot
+                ),
+              }
+            : doctor
+        )
+      );
+      setSelectedSlotId(null);
+      setStatusType("success");
+      setStatusMessage(`Booking confirmed. Reference: ${result.referenceCode}`);
+    } catch (error: any) {
+      setStatusType("error");
+      setStatusMessage(error?.message || "Could not confirm your booking.");
+    } finally {
+      setBookingLoading(false);
+    }
   };
 
   return (
@@ -190,9 +292,13 @@ export default function DoctorsScreen() {
         placeholder="Search doctor, specialty, or address..."
       />
 
+      {loadingDoctors ? (
+        <Text className="text-xs font-semibold text-slate-500">Loading doctors...</Text>
+      ) : null}
+
       {statusMessage ? (
-        <View className="px-3.5 py-2.5 rounded-xl bg-emerald-100 border border-emerald-300">
-          <Text className="text-xs font-bold text-emerald-800">
+        <View className={`px-3.5 py-2.5 rounded-xl border ${statusType === "error" ? "bg-red-100 border-red-300" : "bg-emerald-100 border-emerald-300"}`}>
+          <Text className={`text-xs font-bold ${statusType === "error" ? "text-red-800" : "text-emerald-800"}`}>
             {statusMessage}
           </Text>
         </View>
@@ -344,13 +450,15 @@ export default function DoctorsScreen() {
 
           {/* Book button disabled until a slot is selected */}
           <TouchableOpacity
-            disabled={!selectedSlotId}
+            disabled={!selectedSlotId || bookingLoading}
             onPress={handleBook}
             className={`py-3 rounded-xl items-center mt-1 ${
-              selectedSlotId ? "bg-[#EAB642]" : "bg-slate-300"
+              selectedSlotId && !bookingLoading ? "bg-[#EAB642]" : "bg-slate-300"
             }`}
           >
-            <Text className="text-xs font-extrabold text-white">Book</Text>
+            <Text className="text-xs font-extrabold text-white">
+              {bookingLoading ? "Confirming..." : "Confirm Booking"}
+            </Text>
           </TouchableOpacity>
         </AppCard>
       ) : null}

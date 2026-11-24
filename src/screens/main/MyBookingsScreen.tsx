@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput } from "react-nativ
 import { Ionicons } from "@expo/vector-icons";
 import AppCard from "../../components/AppCard";
 import { colorPalette } from "../../constants/colors";
+import { submitRating } from "../../services/rafeeqService";
 
 export interface OwnerBookingItem {
   id: string;
@@ -52,6 +53,7 @@ export default function MyBookingsScreen() {
   const [ratingBookingId, setRatingBookingId] = useState<string | null>(null);
   const [selectedStars, setSelectedStars] = useState<number>(0);
   const [comment, setComment] = useState<string>("");
+  const [ratingLoading, setRatingLoading] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<{
     type: "error" | "success";
     text: string;
@@ -64,7 +66,7 @@ export default function MyBookingsScreen() {
   const pendingCount = bookings.filter((b) => b.status === "pending").length;
   const approvedCount = bookings.filter((b) => b.status === "approved").length;
 
-  const handleSubmitRating = (bookingId: string) => {
+  const handleSubmitRating = async (bookingId: string) => {
     setFeedbackMsg(null);
 
     if (selectedStars < 1 || selectedStars > 5) {
@@ -75,21 +77,37 @@ export default function MyBookingsScreen() {
       return;
     }
 
-    setBookings((prev) =>
-      prev.map((item) =>
-        item.id === bookingId
-          ? { ...item, canRate: false, myRating: selectedStars }
-          : item
-      )
-    );
-
-    setRatingBookingId(null);
-    setSelectedStars(0);
-    setComment("");
-    setFeedbackMsg({
-      type: "success",
-      text: "Thank you for your rating.",
-    });
+    const booking = bookings.find((item) => item.id === bookingId);
+    setRatingLoading(true);
+    try {
+      await submitRating({
+        bookingId,
+        bookingType: booking?.kind === "doctor" ? "vet_booking" : "host_booking",
+        rating: selectedStars,
+        comment: comment.trim(),
+      });
+      setBookings((prev) =>
+        prev.map((item) =>
+          item.id === bookingId
+            ? { ...item, canRate: false, myRating: selectedStars }
+            : item
+        )
+      );
+      setRatingBookingId(null);
+      setSelectedStars(0);
+      setComment("");
+      setFeedbackMsg({
+        type: "success",
+        text: "Thank you for your rating.",
+      });
+    } catch (error: any) {
+      setFeedbackMsg({
+        type: "error",
+        text: error?.message || "Could not submit your rating.",
+      });
+    } finally {
+      setRatingLoading(false);
+    }
   };
 
   return (
@@ -289,11 +307,12 @@ export default function MyBookingsScreen() {
                       />
 
                       <TouchableOpacity
-                        onPress={() => handleSubmitRating(booking.id)}
-                        className="py-2.5 rounded-xl bg-[#2A4D75] items-center"
+                        onPress={() => void handleSubmitRating(booking.id)}
+                        disabled={ratingLoading}
+                        className={`py-2.5 rounded-xl items-center ${ratingLoading ? "bg-slate-400" : "bg-[#2A4D75]"}`}
                       >
                         <Text className="text-xs font-bold text-white">
-                          Submit Rating
+                          {ratingLoading ? "Submitting..." : "Submit Rating"}
                         </Text>
                       </TouchableOpacity>
                     </View>

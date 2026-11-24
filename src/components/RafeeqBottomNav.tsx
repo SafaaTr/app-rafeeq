@@ -47,7 +47,7 @@ export default function RafeeqBottomNav({
       label: "Care",
       activeIcon: "home",
       inactiveIcon: "home-outline",
-      show: canHost,
+      show: true,
     },
     {
       key: "Bookings",

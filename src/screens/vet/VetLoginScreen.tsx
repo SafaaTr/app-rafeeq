@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AppInput from "../../components/AppInput";
 import AppButton from "../../components/AppButton";
@@ -16,6 +16,7 @@ interface VetLoginScreenProps {
 export default function VetLoginScreen({ onLoginSuccess }: VetLoginScreenProps) {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successInfo, setSuccessInfo] = useState<string>("");
@@ -86,7 +87,21 @@ export default function VetLoginScreen({ onLoginSuccess }: VetLoginScreenProps) 
           placeholder="••••••••"
           value={password}
           onChangeText={setPassword}
-          secureTextEntry
+          secureTextEntry={!showPassword}
+          rightAccessory={(
+            <TouchableOpacity
+              onPress={() => setShowPassword((visible) => !visible)}
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+              className="h-10 w-8 items-center justify-center"
+            >
+              <Ionicons
+                name={showPassword ? "eye-off-outline" : "eye-outline"}
+                size={20}
+                color="#64748B"
+              />
+            </TouchableOpacity>
+          )}
           color="bg-white dark:bg-slate-800"
           borderColor="border-slate-300 dark:border-slate-700"
           textColor="text-[#2A4D75] dark:text-white"

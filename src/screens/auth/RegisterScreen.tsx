@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, TextInput } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import AppCard from "../../components/AppCard";
 import AppButton from "../../components/AppButton";
+import { useAuth } from "../../context/AuthContext";
 
 interface RegisterScreenProps {
   navigation: {
@@ -18,47 +20,72 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
 
-  const handleRegister = () => {
-    setErrorMessage("");
+  const { register, loading } = useAuth();
 
-    const trimmedName = name.trim();
-    const trimmedPhone = phone.trim();
+ const handleRegister = async () => {
+  setErrorMessage("");
 
-    if (
-      !trimmedName ||
-      !trimmedPhone ||
-      !password.trim() ||
-      !confirmPassword.trim()
-    ) {
-      setErrorMessage("Please fill in all fields.");
-      return;
-    }
+  const trimmedName = name.trim();
+  const trimmedPhone = phone.trim();
+  const trimmedPassword = password.trim();
+  const trimmedConfirm = confirmPassword.trim();
 
-    const isValidName = NAME_REGEX.test(trimmedName);
-    const isValidPhone = PHONE_REGEX.test(trimmedPhone);
-    const isValidPassword =
-      password.length >= 8 && password === confirmPassword;
+  if (!trimmedName) {
+    setErrorMessage("Name field is empty.");
+    return;
+  }
+  if (!trimmedPhone) {
+    setErrorMessage("Phone field is empty.");
+    return;
+  }
+  if (!trimmedPassword) {
+    setErrorMessage("Password field is empty.");
+    return;
+  }
+  if (!trimmedConfirm) {
+    setErrorMessage("Confirm Password field is empty.");
+    return;
+  }
 
-    if (!isValidName || !isValidPhone || !isValidPassword) {
-      setErrorMessage(
-        "Invalid name, password, or phone number. Please re-enter."
-      );
-      return;
-    }
+  const isValidName = NAME_REGEX.test(trimmedName);
+  const isValidPhone = PHONE_REGEX.test(trimmedPhone);
+  const isValidPassword =
+    trimmedPassword.length >= 8 && trimmedPassword === trimmedConfirm;
 
-    navigation.navigate("MainApp", {
-      role: "pet_owner",
-      roles: ["pet_owner"],
-      user: {
-        name: trimmedName,
-        phone: trimmedPhone,
-        roles: ["pet_owner"],
-      },
-    });
-  };
+  if (!isValidName) {
+    setErrorMessage("Invalid name format.");
+    return;
+  }
+  if (!isValidPhone) {
+    setErrorMessage("Phone must be 10 digits starting with 09.");
+    return;
+  }
+  if (!isValidPassword) {
+    setErrorMessage(
+      "Password must be at least 8 characters and match Confirm Password."
+    );
+    return;
+  }
 
+  try {
+    const createdUser: any = await register(
+      trimmedName,
+      trimmedPhone,
+      trimmedPassword,
+      trimmedConfirm
+    );
+    void createdUser;
+    navigation.navigate("Login");
+  } catch (err: any) {
+    setErrorMessage(
+      err?.message || "Could not create account. Please try again."
+    );
+  }
+};
   return (
     <ScrollView
       className="flex-1 bg-[#E4EAF1] dark:bg-[#121820]"
@@ -107,33 +134,54 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
           className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-[#2A4D75]"
         />
 
-        <TextInput
-          value={password}
-          onChangeText={(txt) => {
-            setPassword(txt);
-            if (errorMessage) setErrorMessage("");
-          }}
-          placeholder="Password (min 8 characters)"
-          placeholderTextColor="#94A3B8"
-          secureTextEntry
-          className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-[#2A4D75]"
-        />
+        <View className="relative justify-center">
+          <TextInput
+            value={password}
+            onChangeText={(txt) => {
+              setPassword(txt);
+              if (errorMessage) setErrorMessage("");
+            }}
+            placeholder="Password (min 8 characters)"
+            placeholderTextColor="#94A3B8"
+            secureTextEntry={!showPassword}
+            className="bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-12 py-2.5 text-xs text-[#2A4D75]"
+          />
+          <TouchableOpacity
+            onPress={() => setShowPassword((visible) => !visible)}
+            accessibilityRole="button"
+            accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+            className="absolute right-3 h-10 w-8 items-center justify-center"
+          >
+            <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#64748B" />
+          </TouchableOpacity>
+        </View>
 
-        <TextInput
-          value={confirmPassword}
-          onChangeText={(txt) => {
-            setConfirmPassword(txt);
-            if (errorMessage) setErrorMessage("");
-          }}
-          placeholder="Confirm Password"
-          placeholderTextColor="#94A3B8"
-          secureTextEntry
-          className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-[#2A4D75]"
-        />
+        <View className="relative justify-center">
+          <TextInput
+            value={confirmPassword}
+            onChangeText={(txt) => {
+              setConfirmPassword(txt);
+              if (errorMessage) setErrorMessage("");
+            }}
+            placeholder="Confirm Password"
+            placeholderTextColor="#94A3B8"
+            secureTextEntry={!showConfirmPassword}
+            className="bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-12 py-2.5 text-xs text-[#2A4D75]"
+          />
+          <TouchableOpacity
+            onPress={() => setShowConfirmPassword((visible) => !visible)}
+            accessibilityRole="button"
+            accessibilityLabel={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+            className="absolute right-3 h-10 w-8 items-center justify-center"
+          >
+            <Ionicons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={20} color="#64748B" />
+          </TouchableOpacity>
+        </View>
 
         <AppButton
-          title="Register"
+          title={loading ? "Creating account..." : "Register"}
           onPress={handleRegister}
+          disabled={loading}
           color="bg-[#EAB642]"
           textColor="text-white"
           className="mt-1"

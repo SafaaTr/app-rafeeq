@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { View, TouchableOpacity, Text } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -32,7 +32,8 @@ const INVALID_ROLE_MESSAGE = "Invalid name or password. Please re-enter.";
 
 export default function Index() {
   const insets = useSafeAreaInsets();
-  const { setColorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authStage, setAuthStage] = useState<AuthStage>("Splash");
@@ -54,10 +55,6 @@ export default function Index() {
   const [hostScreen, setHostScreen] = useState<"HostBookings" | "HostProfile">(
     "HostBookings"
   );
-
-  useEffect(() => {
-    setColorScheme("light");
-  }, [setColorScheme]);
 
   const handleBackendSession = (backendPayload?: any) => {
     const config = resolveAppRole(backendPayload);
@@ -174,12 +171,14 @@ export default function Index() {
             className={`px-3 py-1.5 rounded-xl border ${
               vetScreen === s
                 ? "bg-[#2A4D75] border-[#2A4D75]"
-                : "bg-white border-slate-300"
+                : "bg-white dark:bg-[#1E2733] border-slate-300 dark:border-slate-700"
             }`}
           >
             <Text
               className={`text-xs font-bold ${
-                vetScreen === s ? "text-white" : "text-[#2A4D75]"
+                vetScreen === s
+                  ? "text-white"
+                  : "text-[#2A4D75] dark:text-slate-200"
               }`}
             >
               {s === "VetSchedule"
@@ -222,12 +221,14 @@ export default function Index() {
             className={`px-3 py-1.5 rounded-xl border ${
               hostScreen === s
                 ? "bg-[#2A4D75] border-[#2A4D75]"
-                : "bg-white border-slate-300"
+                : "bg-white dark:bg-[#1E2733] border-slate-300 dark:border-slate-700"
             }`}
           >
             <Text
               className={`text-xs font-bold ${
-                hostScreen === s ? "text-white" : "text-[#2A4D75]"
+                hostScreen === s
+                  ? "text-white"
+                  : "text-[#2A4D75] dark:text-slate-200"
               }`}
             >
               {s === "HostBookings" ? "Bookings" : "Profile"}
@@ -249,52 +250,25 @@ export default function Index() {
 
   const topSpacing = Math.max(insets.top, 20);
   const bottomSpacing = Math.max(insets.bottom, 10);
+  const shellBg = isDark ? "#121820" : "#E4EAF1";
 
   return (
     <View
       style={{
         flex: 1,
-        backgroundColor: "#E4EAF1",
+        backgroundColor: shellBg,
         paddingTop: topSpacing,
         paddingBottom: bottomSpacing,
       }}
     >
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? "light" : "dark"} />
       <NavBar brandTitle="Rafeeq" />
 
-      {/* Quick role simulator bar for local testing */}
-      <View className="flex-row items-center justify-between px-5 py-1.5">
-        <View className="flex-row gap-1.5">
-          <TouchableOpacity
-            onPress={() => handleBackendSession({ role: "pet_owner" })}
-            className="px-2.5 py-1 rounded-lg bg-[#EAB642]"
-          >
-            <Text className="text-[10px] font-bold text-white">Owner</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => handleBackendSession({ role: "vet" })}
-            className="px-2.5 py-1 rounded-lg bg-[#557FB3]"
-          >
-            <Text className="text-[10px] font-bold text-white">Vet</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => handleBackendSession({ role: "host" })}
-            className="px-2.5 py-1 rounded-lg bg-[#2A4D75]"
-          >
-            <Text className="text-[10px] font-bold text-white">Host</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => handleBackendSession({})}
-            className="px-2.5 py-1 rounded-lg bg-white border border-slate-300"
-          >
-            <Text className="text-[10px] font-bold text-[#2A4D75]">No Role</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
       {sessionError ? (
-        <View className="mx-5 mb-2 px-3.5 py-2 rounded-xl bg-red-100 border border-red-300">
-          <Text className="text-xs font-bold text-red-800">{sessionError}</Text>
+        <View className="mx-5 mb-2 px-3.5 py-2 rounded-xl bg-red-100 dark:bg-red-950/60 border border-red-300 dark:border-red-800">
+          <Text className="text-xs font-bold text-red-800 dark:text-red-200">
+            {sessionError}
+          </Text>
         </View>
       ) : null}
 

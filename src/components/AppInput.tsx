@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ReactNode } from "react";
 import { View, Text, TextInput, TextInputProps } from "react-native";
 
 interface AppInputProps extends Omit<TextInputProps, "className"> {
@@ -12,6 +12,7 @@ interface AppInputProps extends Omit<TextInputProps, "className"> {
   inputClassName?: string;
   labelClassName?: string;
   errorClassName?: string;
+  rightAccessory?: ReactNode;
 }
 
 export default function AppInput({
@@ -25,6 +26,7 @@ export default function AppInput({
   inputClassName = "",
   labelClassName = "",
   errorClassName = "",
+  rightAccessory,
   style,
   ...rest
 }: AppInputProps) {
@@ -50,14 +52,21 @@ export default function AppInput({
         </Text>
       ) : null}
 
-      <TextInput
-        placeholderTextColor={placeholderColor}
-        style={[bgStyle, txtStyle, bdrStyle, style]}
-        className={`w-full py-3 px-4 rounded-xl border text-base ${bgClass} ${txtClass} ${bdrClass} ${
-          error ? "border-red-500" : ""
-        } ${inputClassName}`}
-        {...rest}
-      />
+      <View className="relative justify-center">
+        <TextInput
+          placeholderTextColor={placeholderColor}
+          style={[bgStyle, txtStyle, bdrStyle, style]}
+          className={`w-full py-3 px-4 rounded-xl border text-base ${rightAccessory ? "pr-12" : ""} ${bgClass} ${txtClass} ${bdrClass} ${
+            error ? "border-red-500" : ""
+          } ${inputClassName}`}
+          {...rest}
+        />
+        {rightAccessory ? (
+          <View className="absolute right-3 h-12 items-center justify-center">
+            {rightAccessory}
+          </View>
+        ) : null}
+      </View>
 
       {error ? (
         <Text className={`text-xs text-red-500 mt-1 ${errorClassName}`}>

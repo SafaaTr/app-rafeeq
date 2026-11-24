@@ -46,6 +46,8 @@ export interface VetDoctorAccount {
   status: "active" | "unavailable";
   avgRating: number;
   ratingsCount: number;
+  bio?: string;
+  specialization?: string;
 }
 
 export async function getDoctors(): Promise<Doctor[]> {
@@ -231,6 +233,8 @@ export async function updateVetProfileInfo(payload: {
   address: string;
   clinicName?: string;
   consultationPrice?: number;
+  bio?: string;
+  specialization?: string;
 }): Promise<VetDoctorAccount> {
   return fetchApi(
     `/admin/doctors/${payload.externalDoctorId}`,

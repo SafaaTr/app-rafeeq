@@ -1,72 +1,81 @@
 export type AppRole = "pet_owner" | "vet" | "host";
 
-export type VetScreenKey = "VetSchedule" | "VetBookings" | "VetProfile";
-export type HostScreenKey = "HostBookings" | "HostProfile";
-export type MainTabKey = "Doctors" | "Stores" | "Care" | "Bookings" | "Profile";
-
-export interface SessionRouteConfig {
+export interface ResolvedRoleConfig {
   isValid: boolean;
   role: AppRole | null;
-  initialMainTab: MainTabKey;
-  initialVetScreen: VetScreenKey;
-  initialHostScreen: HostScreenKey;
+  initialMainTab: "Doctors" | "Stores" | "Care" | "Bookings" | "Profile";
+  initialVetScreen: "VetSchedule" | "VetBookings" | "VetProfile";
+  initialHostScreen: "HostBookings" | "HostProfile";
 }
 
-/**
- * Resolves application role strictly based on Version 1.2 technical specifications.
- * Roles map to: 'pet_owner', 'vet' (veterinarian), or 'host' (host_caregiver).
- * Invalid or missing roles return isValid: false.
- */
-export function resolveAppRole(payload?: {
-  role?: string;
-  roles?: string[];
-  user?: { role?: string; roles?: string[] };
-  doctor?: { role?: string };
-  host?: { role?: string };
-}): SessionRouteConfig {
-  const candidates: string[] = [];
-
-  if (payload?.role) candidates.push(payload.role);
-  if (Array.isArray(payload?.roles)) candidates.push(...payload.roles);
-  if (payload?.user?.role) candidates.push(payload.user.role);
-  if (Array.isArray(payload?.user?.roles)) candidates.push(...payload.user.roles);
-  if (payload?.doctor?.role) candidates.push(payload.doctor.role);
-  if (payload?.host?.role) candidates.push(payload.host.role);
-
-  const normalized = candidates.map((r) => r.toLowerCase().trim());
-
-  let resolvedRole: AppRole | null = null;
+function normalizeSingleRole(raw: unknown): AppRole | null {
+  if (typeof raw !== "string") return null;
+  const cleaned = raw.trim().toLowerCase();
 
   if (
-    normalized.some(
-      (r) => r === "vet" || r === "doctor" || r === "veterinarian"
-    )
+    cleaned === "host" ||
+    cleaned === "host_caregiver" ||
+    cleaned === "caregiver" ||
+    cleaned === "pet_host"
   ) {
-    resolvedRole = "vet";
-  } else if (
-    normalized.some(
-      (r) => r === "host" || r === "caregiver" || r === "host_caregiver"
-    )
-  ) {
-    resolvedRole = "host";
-  } else if (
-    normalized.some(
-      (r) => r === "pet_owner" || r === "owner" || r === "user" || r === "customer"
-    )
-  ) {
-    resolvedRole = "pet_owner";
+    return "host";
   }
 
-  // Strictly according to Spec 1.2 (Section 4.5): Unknown or missing role must fail login resolution
-  if (!resolvedRole) {
-    return {
-      isValid: false,
-      role: null,
-      initialMainTab: "Doctors",
-      initialVetScreen: "VetSchedule",
-      initialHostScreen: "HostBookings",
-    };
+  if (
+    cleaned === "vet" ||
+    cleaned === "veterinarian" ||
+    cleaned === "doctor"
+  ) {
+    return "vet";
   }
+
+  if (
+    cleaned === "pet_owner" ||
+    cleaned === "owner" ||
+    cleaned === "user" ||
+    cleaned === "customer"
+  ) {
+    return "pet_owner";
+  }
+
+  return null;
+}
+
+export function resolveAppRole(payload?: any): ResolvedRoleConfig {
+  const defaultInvalid: ResolvedRoleConfig = {
+    isValid: false,
+    role: null,
+    initialMainTab: "Doctors",
+    initialVetScreen: "VetSchedule",
+    initialHostScreen: "HostBookings",
+  };
+
+  if (!payload) return defaultInvalid;
+
+  const candidateUser =
+    payload?.user ?? payload?.data?.user ?? payload?.data ?? payload;
+
+  const candidates: unknown[] = [
+    ...(Array.isArray(candidateUser?.roles) ? candidateUser.roles : []),
+    ...(Array.isArray(payload?.roles) ? payload.roles : []),
+    candidateUser?.role,
+    payload?.role,
+  ];
+
+  // نعطي الأولوية للأدوار المتخصصة (vet / host) قبل pet_owner إذا وجدت
+  const mappedRoles = candidates
+    .map(normalizeSingleRole)
+    .filter((r): r is AppRole => r !== null);
+
+  if (mappedRoles.length === 0) {
+    return defaultInvalid;
+  }
+
+  const resolvedRole: AppRole = mappedRoles.includes("host")
+    ? "host"
+    : mappedRoles.includes("vet")
+    ? "vet"
+    : mappedRoles[0];
 
   return {
     isValid: true,
